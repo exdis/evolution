@@ -2,8 +2,14 @@ This file shows the changes in recent releases of MODx. The most current release
 development release, and is only shown to give an idea of what's currently in the pipeline.
 
 
-MODx Evolution 1.0.10 (Mar 22, 2013)
+MODx Evolution 1.0.10 (Mar 23, 2013)
 ===================================
+
+--------------------------------------------
+Security:
+--------------------------------------------
+* [#9704] LFI in mutate_settings.ajax.php
+
 --------------------------------------------
 Bugfixes:
 --------------------------------------------
@@ -27,6 +33,9 @@ Bugfixes:
 * [#9695] bug with add images from FCKeditor
 * [#9696] ImageEditor fix for php5.4
 * [#9697] seturl_js_tinymce incorrect path
+* [#9708] Improvement event log message
+* [#9709] Undefined variable error
+* [#9711] TinyMCE - two editor's plugins missing
 
 --------------------------------------------
 Additional Improvements & Updates:
@@ -38,6 +47,10 @@ Additional Improvements & Updates:
 * [#9673] Improvement some translations
 * [#9692] Escape strings in array data
 * [#9693] When use mysql_real_escape_string, execute mysql_set_charset beforehand
+* [#9682] modx::getVersionData()
+* [#9703] fake settings_version
+* [#9665] add more content type (json)
+* [#9683] trusted folder/file in index-ajax.php
 
 
 
