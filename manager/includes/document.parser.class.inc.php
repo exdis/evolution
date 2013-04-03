@@ -47,6 +47,7 @@ class DocumentParser {
     var $loadedjscripts;
     var $documentMap;
     var $forwards= 3;
+    var $dirs=NULL;
     private $version=array();
 
     // constructor
@@ -1034,17 +1035,22 @@ class DocumentParser {
         return $snippetObject;
     }
 
-    function makeFriendlyURL($pre, $suff, $alias) {
+    function makeFriendlyURL($pre, $suff, $alias, $isDir=false) {
         $Alias = explode('/',$alias);
         $alias = array_pop($Alias);
         $dir = implode('/', $Alias);
         unset($Alias);
-        return ($dir != '' ? "$dir/" : '') . $pre . $alias . $suff;
+        if ($isDir) {
+            return ($dir != '' ? "$dir/" : '') . $pre . $alias . '/';
+        } else {
+            return ($dir != '' ? "$dir/" : '') . $pre . $alias . $suff;
+        }
     }
 
     function rewriteUrls($documentSource) {
         // rewrite the urls
         if ($this->config['friendly_urls'] == 1) {
+            $this->prepareIsFolderArr();
             $aliases= array ();
             foreach ($this->aliasListing as $item) {
                 $aliases[$item['id']]= (strlen($item['path']) > 0 ? $item['path'] . '/' : '') . $item['alias'];
@@ -1054,7 +1060,8 @@ class DocumentParser {
             $pref= $this->config['friendly_url_prefix'];
             $suff= $this->config['friendly_url_suffix'];
             $thealias= '$aliases[\\1]';
-            $found_friendlyurl= "\$this->makeFriendlyURL('$pref','$suff',$thealias)";
+            $thedir= '$this->dirs[\\1]';
+            $found_friendlyurl= "\$this->makeFriendlyURL('$pref','$suff',$thealias,$thedir)";
             $not_found_friendlyurl= "\$this->makeFriendlyURL('$pref','$suff','" . '\\1' . "')";
             $out= "({$isfriendly} && isset({$thealias}) ? {$found_friendlyurl} : {$not_found_friendlyurl})";
             $documentSource= preg_replace($in, $out, $documentSource);
@@ -1065,6 +1072,28 @@ class DocumentParser {
         }
         return $documentSource;
     }
+
+    /**
+     * name: prepareIsFolderArr - used by parser
+     * desc: prepare array, which contains for each 'id' value 'true', if the document is a directory
+     */
+
+    function prepareIsFolderArr() {
+        if($this->dirs !== NULL) return;
+        $result = $this->db->select('id', $this->getFullTableName('site_content'), 'published > 0 AND isfolder > 0');
+        $isfolder_arr = array();
+        while ($row = $this->db->getRow($result))
+           $isfolder_arr[$row['id']] = true;
+        $this->dirs= array ();
+        foreach ($this->aliasListing as $item) {
+            if ((is_array($isfolder_arr) && isset($isfolder_arr[$item['id']])) || count($this->getChildIds($item['id'], 1))) {
+                $this->dirs[$item['id']] = true;
+            } else {
+                $this->dirs[$item['id']] = false;
+            }
+        }
+    }
+
 
     /**
      * name: getDocumentObject  - used by parser
@@ -1702,6 +1731,7 @@ class DocumentParser {
         $virtualDir= '';
         $f_url_prefix = $this->config['friendly_url_prefix'];
         $f_url_suffix = $this->config['friendly_url_suffix'];
+        $this->prepareIsFolderArr();
         if (!is_numeric($id)) {
             $this->messageQuit('`' . $id . '` is not numeric and may not be passed to makeUrl()');
         }
@@ -1726,7 +1756,7 @@ class DocumentParser {
             elseif ($c != '&') $args= '&' . $args;
         }
         if ($this->config['friendly_urls'] == 1 && $alias != '') {
-            $url= $f_url_prefix . $alias . $f_url_suffix . $args;
+            $url= $f_url_prefix . $alias . ($this->dirs[$id] ? '/' : $f_url_suffix) . $args;
         }
         elseif ($this->config['friendly_urls'] == 1 && $alias == '') {
             $alias= $id;
@@ -1736,7 +1766,7 @@ class DocumentParser {
                 if ($al && $al['alias'])
                     $alias= $al['alias'];
             }
-            $alias= $alPath . $f_url_prefix . $alias . $f_url_suffix;
+            $alias= $alPath . $f_url_prefix . $alias . ($this->dirs[$id] ? '/' : $f_url_suffix);
             $url= $alias . $args;
         } else {
             $url= 'index.php?id=' . $id . $args;
